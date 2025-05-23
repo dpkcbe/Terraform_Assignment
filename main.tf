@@ -142,3 +142,24 @@ resource "aws_route_table" "private" {
     Name = "prefect-ecs-private"
   }
 }
+
+resource "aws_ecs_cluster" "prefect" {
+  name = var.ecs_cluster_name
+    service_connect_defaults {
+    namespace = aws_service_discovery_private_dns_namespace.prefect.id
+  }
+  tags = {
+    Name = "prefect-ecs"
+  }
+}
+
+resource "aws_service_discovery_private_dns_namespace" "prefect" {
+  name        = "default.prefect.local"
+  description = "Private DNS namespace for Prefect ECS services"
+  vpc         = aws_vpc.main.id
+
+  tags = {
+    Name = "default.prefect.local"
+  }
+}
+
