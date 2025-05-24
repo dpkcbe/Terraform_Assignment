@@ -146,7 +146,7 @@ resource "aws_route_table" "private" {
 resource "aws_ecs_cluster" "prefect" {
   name = var.ecs_cluster_name
     service_connect_defaults {
-    namespace = aws_service_discovery_private_dns_namespace.prefect.id
+    namespace = aws_service_discovery_private_dns_namespace.prefect.arn
   }
   tags = {
     Name = "prefect-ecs"
@@ -161,5 +161,57 @@ resource "aws_service_discovery_private_dns_namespace" "prefect" {
   tags = {
     Name = "default.prefect.local"
   }
+}
+
+resource "aws_iam_role" "prefect_task_execution" {
+  name = "prefect-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "prefect-task-execution-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
+  role       = aws_iam_role.prefect_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+data "aws_caller_identity" "current" {}
+
+resource "aws_iam_policy" "secrets_manager_access" {
+  name = "prefect-secrets-manager-access"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ],
+        Resource = "arn:aws:secretsmanager:us-east-1:${data.aws_caller_identity.current.account_id}:secret:prefect-api-key-*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "secrets_manager_policy_attachment" {
+  name       = "attach-prefect-secrets"
+  roles      = [aws_iam_role.prefect_task_execution.name]
+  policy_arn = aws_iam_policy.secrets_manager_access.arn
 }
 

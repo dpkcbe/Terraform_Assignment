@@ -1,0 +1,9 @@
+name: hello-flow-deployment
+flow_name: hello-flow
+entrypoint: flow.py:hello_flow
+work_pool:
+  name: dev-worker-pool
+  work_queue_name: default
+  job_variables: {}
+tags: []
+parameters: {}
