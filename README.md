@@ -38,7 +38,9 @@ cd prefect-ecs-deploy
 ```
 ### 2. Create a terraform.tfvars file with your values
 prefect_account_url  = "https://api.prefect.cloud/api/accounts/your-account-id"
+
 prefect_account_id   = "your-account-id"
+
 prefect_workspace_id = "your-workspace-id"
 
 You can also tweak values like the worker name, region, etc., inside variables.tf or override from CLI.
