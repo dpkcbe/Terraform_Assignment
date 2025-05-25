@@ -63,13 +63,13 @@ II - Clusters → prefect-cluster → Tasks
 
 III - Click on the task and check:
 
-IV - Task Status: RUNNING
+      Task Status: RUNNING
 
-V - Launch Type: FARGATE
+      Launch Type: FARGATE
 
-VI - Subnet and Security Group assigned correctly
+IV - Subnet and Security Group assigned correctly
 
-VII - Role: Ensure both Task and Execution roles are attached
+V - Role: Ensure both Task and Execution roles are attached
 
 ### 5.Cleaning up the resources
 terraform destroy
