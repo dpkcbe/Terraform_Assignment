@@ -10,3 +10,7 @@ variable "ecs_cluster_name" {
   default = "prefect-cluster"
   type        = string
 }
+
+variable "prefect_account_id" {}
+variable "prefect_workspace_id" {}
+variable "prefect_account_url" {}

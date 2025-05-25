@@ -85,9 +85,7 @@ resource "aws_nat_gateway" "nat" {
   }
 }
 
-resource "aws_eip" "nat" {
-  associate_with_private_ip = null
-}
+resource "aws_eip" "nat" {}
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -215,3 +213,105 @@ resource "aws_iam_policy_attachment" "secrets_manager_policy_attachment" {
   policy_arn = aws_iam_policy.secrets_manager_access.arn
 }
 
+data "aws_secretsmanager_secret_version" "prefect_api_key" {
+  secret_id = "prefect-api-key-dev"
+}
+
+resource "aws_ecs_task_definition" "prefect_worker" {
+  family                   = "dev-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = aws_iam_role.prefect_task_execution.arn
+  task_role_arn            = aws_iam_role.prefect_task_execution.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "prefect-worker"
+      image     = "prefecthq/prefect:2-latest"
+      essential = true
+      environment = [
+        {
+          name  = "PREFECT_API_URL"
+          value = var.prefect_account_url
+        },
+        {
+          name  = "PREFECT_WORK_POOL_NAME"
+          value = "ecs-work-pool"
+        },
+        {
+          name  = "PREFECT_ACCOUNT_ID"
+          value = var.prefect_account_id
+        },
+        {
+          name  = "PREFECT_WORKSPACE_ID"
+          value = var.prefect_workspace_id
+        }
+      ]
+      secrets = [
+        {
+          name      = "PREFECT_API_KEY"
+          valueFrom = data.aws_secretsmanager_secret_version.prefect_api_key.arn
+        }
+      ]
+      command = ["prefect", "worker", "start", "--pool", "ecs-work-pool", "--name", "dev-worker"]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/dev-worker"
+          awslogs-region        = "us-east-1"
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_service" "prefect_worker" {
+  name            = "dev-worker"
+  cluster         = aws_ecs_cluster.prefect.id
+  task_definition = aws_ecs_task_definition.prefect_worker.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = [
+      aws_subnet.private_1.id,
+      aws_subnet.private_2.id,
+      aws_subnet.private_3.id
+    ]
+    assign_public_ip = false
+    security_groups  = [aws_security_group.worker_sg.id]
+  }
+
+  depends_on = [
+    aws_ecs_cluster.prefect,
+    aws_iam_role.prefect_task_execution
+  ]
+}
+
+resource "aws_cloudwatch_log_group" "ecs_worker_logs" {
+  name              = "/ecs/dev-worker"
+  retention_in_days = 7
+}
+
+resource "aws_security_group" "worker_sg" {
+  name        = "worker-sg"
+  description = "Allow internal VPC traffic"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
