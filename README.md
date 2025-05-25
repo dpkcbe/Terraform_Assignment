@@ -33,8 +33,8 @@ I went with Terraform because it’s flexible, easy to modularize, and widely us
 ### 1. Clone the repo
 
 ```bash
-git clone <your-repo-url>
-cd prefect-ecs-deploy
+git clone https://github.com/dpkcbe/Terraform_Assignment.git
+cd Terraform_Assignment
 ```
 ### 2. Create a terraform.tfvars file with your values
 prefect_account_url  = "https://api.prefect.cloud/api/accounts/your-account-id"
