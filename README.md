@@ -46,12 +46,31 @@ prefect_workspace_id = "your-workspace-id"
 You can also tweak values like the worker name, region, etc., inside variables.tf or override from CLI.
 
 ### 3. Terraform commands
+
 #### Initialize Terraform
 terraform init
+
 #### Preview the plan
 terraform plan
+
 #### Apply the changes
 terraform apply (Type yes when prompted.) OR use terraform apply --auto-approve
-#### Cleaning up
+
+### 4. Verification
+I - Go to ECS Console -  Check if the task is running.
+
+II - Clusters → prefect-cluster → Tasks
+
+III - Click on the task and check:
+
+IV - Task Status: RUNNING
+
+V - Launch Type: FARGATE
+
+VI - Subnet and Security Group assigned correctly
+
+VII - Role: Ensure both Task and Execution roles are attached
+
+### 5.Cleaning up the resources
 terraform destroy
 
